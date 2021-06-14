@@ -50,6 +50,16 @@ VALUES
 
 --  View all employees: the first join should return a table with id first name, last name, title, department, salary, manager name
 
+SELECT 
+employee.id, 
+employee.first_name, 
+employee.last_name, 
+CONCAT (manager.first_name, " ", manager.last_name) AS manager, role.title AS title, role.salary AS salary, department.name AS department
+    FROM employee
+    JOIN role on employee.role_id = role.id 
+    JOIN department on role.department_id = department.id
+    LEFT JOIN employee AS manager ON employee.manager_id = manager.id
+
 -- View all employees by manager - return the same join as above, but sort by manager
 
 -- View all employees by department - return the same join as above, but sort by department

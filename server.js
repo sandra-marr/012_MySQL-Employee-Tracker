@@ -1,5 +1,6 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
+// look up how to better display tables here https://www.npmjs.com/package/tables
 
 const connection = mysql.createConnection({
   host: 'localhost',
@@ -73,9 +74,24 @@ const menu = () => {
 const viewAllEmployees = () => {
 
   console.log("This is where you will view all employees");
-  
-  menu();
 
+  //  View all employees: the first join should return a table with id, first name, last name, title, department, salary, manager name (first and last in one colmn)
+  connection.query(
+    `SELECT 
+    employee.id, 
+    employee.first_name, 
+    employee.last_name, 
+    CONCAT (manager.first_name, " ", manager.last_name) AS manager, role.title AS title, role.salary AS salary, department.name AS department
+        FROM employee
+        JOIN role on employee.role_id = role.id 
+        JOIN department on role.department_id = department.id
+        LEFT JOIN employee AS manager ON employee.manager_id = manager.id`,
+    
+    function (err, res) {
+      if (err) throw err;
+      console.table(res);
+      menu();
+    });
 };
 
 const viewByManager = () => {
@@ -122,5 +138,5 @@ const updateManager = () => {
   console.log("This is where you will update an employee's manager");
 
   menu();
-  
+
 };
