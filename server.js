@@ -97,20 +97,33 @@ const viewAllEmployees = () => {
 
 const managerArray = [];
     
-var populateManageArray = () => {
+var populateManagerArray = () => {
   connection.query("SELECT * FROM employee WHERE role_id = 6", (err, results) => {
     if (err) throw err;
 
   results.forEach(({ id, first_name, last_name }) => {
-  managerArray.push({id: id, managerName: first_name + " " + last_name});
- 
+    managerArray.push({id: id, managerName: first_name + " " + last_name});
+  })
   return managerArray;
+})};
 
-})})};
+const manager_list = [];
+
+var populateManager_list = () => {
+  connection.query("SELECT * FROM employee WHERE role_id = 6", (err, results) => {
+    if (err) throw err;
+    
+    results.forEach(({ first_name, last_name }) => {
+      manager_list.push(first_name + " " + last_name);
+    })
+    return manager_list;
+  })
+};
 
 const viewByManager = () => {
 
-  populateManageArray();
+  populateManagerArray();
+  populateManager_list();
 
   connection.query("SELECT * FROM employee WHERE role_id = 6", (err, results) => {
     if (err) throw err;
@@ -121,16 +134,8 @@ const viewByManager = () => {
           type: "list",
           name: "managerList",
           message: "Please select a manager from the list below to view their team.",
-          choices () {
-            const choiceArray = [];
-            var managerArray = [];
-            results.forEach(({ id, first_name, last_name }) => {
-              choiceArray.push(first_name + " " + last_name);
-              managerArray.push({id: id, managerName: first_name + " " + last_name});
-            });
-            return choiceArray;
-          },
-        }
+          choices: manager_list, 
+        },
       ])
       .then ((answer) => {
         console.log(answer);
@@ -169,17 +174,28 @@ var populateDepartmentArray = () => {
   connection.query("SELECT * FROM department", (err, results) => {
     if (err) throw err;
 
-  results.forEach(({ id, name }) => {
-  departmentArray.push({id: id, departmentName: name });
-  console.log(departmentArray);
-  console.log(departmentArray[0].id)
-  return departmentArray;
+    results.forEach(({ id, name }) => {
+      departmentArray.push({id: id, departmentName: name });
+    })
+    return departmentArray;
+})};
 
-})})};
+const department_list = [];
+
+var populateDepartment_list = () => {
+  connection.query("SELECT * FROM department", (err, results) => {
+    if (err) throw err;
+
+  results.forEach(({ id, name }) => {
+    department_list.push(name);
+  })
+  return department_list;
+})};
 
 const viewByDepartment = () => {
 
   populateDepartmentArray();
+  populateDepartment_list();
  
   connection.query("SELECT * FROM department", (err, results) => {
     if (err) throw err;
@@ -190,15 +206,9 @@ const viewByDepartment = () => {
           type: "list",
           name: "departmentList",
           message: "Please select a department from the list below to view department members.",
-          choices () {
-            const choiceArray = [];
-        
-            results.forEach(({ name }) => {
-              choiceArray.push(name);
-            });
-            return choiceArray;
-          },
-        }
+          choices: department_list,
+        },
+    
       ])
       .then ((answer) => {
         
@@ -230,12 +240,93 @@ const viewByDepartment = () => {
       })
 })}
 
+const roleArray = [];
+    
+var populateRoleArray = () => {
+  connection.query("SELECT * FROM role", (err, results) => {
+    if (err) throw err;
+
+  results.forEach(({ id, title, department_id}) => {
+    roleArray.push({id: id, title: title, department_id: department_id });
+  })
+  return roleArray;
+ })};
+
+const role_list = [];
+
+var populateRole_list = () => {
+  connection.query("SELECT * FROM role", (err, results) => {
+    if (err) throw err;
+
+    results.forEach(({ title }) => {
+      role_list.push(title); 
+    })
+    return role_list;
+})};
+
 const addEmployee = () => {
+  populateManager_list();
+  populateRole_list();
+  populateRoleArray();
+  populateManagerArray();
 
-  console.log("This is where you will add an employee");
+ 
+  inquirer
+    .prompt([
+      {
+        name: "firstName",
+        type: "input",
+        message: "Please enter the Employee's first name.",
+      },
+      {
+        name: "lastName",
+        type: "input",
+        message: "Please enter the Employee's last name.",
+      },
+      {
+        name: "role",
+        type: "list",
+        message: "Please select the Employee role from the list below.",
+        choices: role_list,
+      },
+      {
+        name: "manager",
+        type: "list",
+        message: "Please assign a manager from the list below.",
+        choices: manager_list,
+      },
+    ])
+    .then((answer) => {
+
+      var roleId;
+
+      roleArray.forEach ((item)=>{
+        if(item.title === answer.role) {
+          return roleId = item.id;
+        }
+      })
+
+      var managerId; 
+
+      managerArray.forEach ((item)=>{
+        if(item.managerName === answer.manager) {
+          return managerId = item.id;
+        }
+      })
   
-  menu();
+      connection.query("INSERT INTO employee SET ?",
+        {
+          first_name: answer.firstName,
+          last_name: answer.lastName,
+          role_id: roleId,
+          manager_id: managerId,
+        },
+        (err) => {
+          if (err) throw err;
+          menu();
 
+        });
+    });
 };
 
 const removeEmployee = () => {
