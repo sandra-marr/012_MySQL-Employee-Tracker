@@ -329,12 +329,74 @@ const addEmployee = () => {
     });
 };
 
+const employeeArray = [];
+
+var populateEmployeeArray = () => {
+  connection.query("SELECT * FROM employee", (err, results) => {
+    if (err) throw err;
+
+    results.forEach(({ id, first_name, last_name }) => {
+      employeeArray.push({id: id, employeeName: first_name + " " + last_name});
+    })
+  return employeeArray;
+})
+};
+
+const employee_list = [];
+
+var populateEmployee_list = () => {
+  connection.query("SELECT * FROM employee", (err, results) => {
+    if (err) throw err;
+    
+    results.forEach(({ first_name, last_name }) => {
+      employee_list.push(first_name + " " + last_name);
+    })
+    return employee_list;
+  })
+};
+
 const removeEmployee = () => {
+  
+  connection.query("SELECT * FROM employee", (err, results) => {
+    if (err) throw err;
 
-  console.log("This is where you will remove an employee");
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "employeeList",
+          message: "Please select an employee to remove.",
+          choices() {
+            const choiceArray = [];
+            results.forEach(({ first_name, last_name }) => {
+              choiceArray.push(first_name + " " + last_name);
+            });
+            return choiceArray;
+          },
+        }
+    ])
+    .then ((answer) => {
+      
+      var employeeID;
 
-  menu();
+      employeeArray.forEach ((item)=>{
+        if(item.employeeName === answer.employeeList) {
+          return employeeID = item.id;
+        }
+      })
 
+
+      connection.query("DELETE FROM employee WHERE ?",
+        {
+          id: employeeID,
+        },
+        (err) => {
+          if (err) throw err;
+          menu();
+
+        });
+    })
+  })
 };
 
 const updateRole = () => {
