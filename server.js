@@ -1,5 +1,6 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
+const cTable = require('console.table');
 // look up how to better display tables here https://www.npmjs.com/package/tables
 
 const connection = mysql.createConnection({
@@ -94,20 +95,140 @@ const viewAllEmployees = () => {
     });
 };
 
-const viewByManager = () => {
- 
-  console.log("This is where you will view all employees sorted by manager");
+const managerArray = [];
+    
+var populateManageArray = () => {
+  connection.query("SELECT * FROM employee WHERE role_id = 6", (err, results) => {
+    if (err) throw err;
 
-  menu();
-};
+  results.forEach(({ id, first_name, last_name }) => {
+  managerArray.push({id: id, managerName: first_name + " " + last_name});
+ 
+  return managerArray;
+
+})})};
+
+const viewByManager = () => {
+
+  populateManageArray();
+
+  connection.query("SELECT * FROM employee WHERE role_id = 6", (err, results) => {
+    if (err) throw err;
+
+    inquirer
+      .prompt ([
+        {
+          type: "list",
+          name: "managerList",
+          message: "Please select a manager from the list below to view their team.",
+          choices () {
+            const choiceArray = [];
+            var managerArray = [];
+            results.forEach(({ id, first_name, last_name }) => {
+              choiceArray.push(first_name + " " + last_name);
+              managerArray.push({id: id, managerName: first_name + " " + last_name});
+            });
+            return choiceArray;
+          },
+        }
+      ])
+      .then ((answer) => {
+        console.log(answer);
+
+        var managerId; 
+
+        managerArray.forEach ((item)=>{
+          if(item.managerName === answer.managerList) {
+            return managerId = item.id;
+          }
+        })
+
+        connection.query(
+          `SELECT 
+          employee.id, 
+          employee.first_name, 
+          employee.last_name, 
+          CONCAT (manager.first_name, " ", manager.last_name) AS manager, role.title AS title, role.salary AS salary, department.name AS department
+          FROM employee
+          JOIN role on employee.role_id = role.id 
+          JOIN department on role.department_id = department.id
+          JOIN employee AS manager ON employee.manager_id = manager.id
+          WHERE employee.manager_id = ${managerId}`,
+        
+          function (err, res) {
+            if (err) throw err;
+            console.table(res);
+            menu();
+          });
+      })
+})}
+
+const departmentArray = [];
+    
+var populateDepartmentArray = () => {
+  connection.query("SELECT * FROM department", (err, results) => {
+    if (err) throw err;
+
+  results.forEach(({ id, name }) => {
+  departmentArray.push({id: id, departmentName: name });
+  console.log(departmentArray);
+  console.log(departmentArray[0].id)
+  return departmentArray;
+
+})})};
 
 const viewByDepartment = () => {
-  
-  console.log("This is where you will view all employees sorted by department");
 
-  menu();
+  populateDepartmentArray();
+ 
+  connection.query("SELECT * FROM department", (err, results) => {
+    if (err) throw err;
 
-};
+    inquirer
+      .prompt ([
+        {
+          type: "list",
+          name: "departmentList",
+          message: "Please select a department from the list below to view department members.",
+          choices () {
+            const choiceArray = [];
+        
+            results.forEach(({ name }) => {
+              choiceArray.push(name);
+            });
+            return choiceArray;
+          },
+        }
+      ])
+      .then ((answer) => {
+        
+        var departmentId;
+
+        departmentArray.forEach ((item)=>{
+          if(item.departmentName === answer.departmentList) {
+            return departmentId = item.id;
+          }
+        })
+
+        connection.query(
+          `SELECT 
+          employee.id, 
+          employee.first_name, 
+          employee.last_name, 
+          CONCAT (manager.first_name, " ", manager.last_name) AS manager, role.title AS title, role.salary AS salary, department.name AS department
+          FROM employee
+          JOIN role on employee.role_id = role.id 
+          JOIN department on role.department_id = department.id
+          JOIN employee AS manager ON employee.manager_id = manager.id
+          WHERE role.department_id = ${departmentId}`,
+        
+          function (err, res) {
+            if (err) throw err;
+            console.table(res);
+            menu();
+          });
+      })
+})}
 
 const addEmployee = () => {
 
