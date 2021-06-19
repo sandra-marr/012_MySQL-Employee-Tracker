@@ -138,6 +138,8 @@ var populateDepartmentArray = () => {
   connection.query("SELECT * FROM department", (err, results) => {
     if (err) throw err;
 
+    departmentArray = []
+
       results.forEach(({ id, name }) => {
         departmentArray.push({id: id, departmentName: name });
       })
@@ -148,6 +150,8 @@ var populateDepartmentArray = () => {
 var populateDepartment_list = () => {
   connection.query("SELECT * FROM department", (err, results) => {
     if (err) throw err;
+
+    department_list = []
 
     results.forEach(({ id, name }) => {
       department_list.push(name);
@@ -160,6 +164,8 @@ var populateRoleArray = () => {
   connection.query("SELECT * FROM role", (err, results) => {
     if (err) throw err;
 
+    roleArray = []
+
     results.forEach(({ id, title, department_id}) => {
       roleArray.push({id: id, title: title, department_id: department_id });
     })
@@ -170,6 +176,8 @@ var populateRoleArray = () => {
 var populateRole_list = () => {
   connection.query("SELECT * FROM role", (err, results) => {
     if (err) throw err;
+
+    role_list = []
 
     results.forEach(({ title }) => {
       role_list.push(title); 
@@ -182,6 +190,8 @@ var populateEmployeeArray = () => {
   connection.query("SELECT * FROM employee", (err, results) => {
     if (err) throw err;
 
+    employeeArray = []
+
     results.forEach(({ id, first_name, last_name }) => {
       employeeArray.push({id: id, employeeName: first_name + " " + last_name});
     })
@@ -193,6 +203,8 @@ var populateEmployee_list = () => {
   connection.query("SELECT * FROM employee", (err, results) => {
     if (err) throw err;
     
+    employee_list = []
+
     results.forEach(({ first_name, last_name }) => {
       employee_list.push(first_name + " " + last_name);
     })
@@ -203,9 +215,6 @@ var populateEmployee_list = () => {
 //Code for inquirer and mysql interaction - basic viewing
 const viewAllEmployees = () => {
 
-  console.log("This is where you will view all employees");
-
-  //  View all employees: the first join should return a table with id, first name, last name, title, department, salary, manager name (first and last in one colmn)
   connection.query(
     `SELECT 
     employee.id, 
@@ -295,7 +304,6 @@ const viewByManager = () => {
         
           function (err, res) {
             if (err) throw err;
-            console.log(res);
             if (res.length === 0) {
               console.log("That manager does not have any direct reports.")
             }
@@ -344,12 +352,17 @@ const viewByDepartment = () => {
           FROM employee
           JOIN role on employee.role_id = role.id 
           JOIN department on role.department_id = department.id
-          JOIN employee AS manager ON employee.manager_id = manager.id
+          LEFT JOIN employee AS manager ON employee.manager_id = manager.id
           WHERE role.department_id = ${departmentId}`,
         
           function (err, res) {
             if (err) throw err;
+            if (res.length === 0) {
+              console.log("That department does not have any employees.")
+            }
+            else{
             console.table(res);
+            }
             menu();
           });
       })
