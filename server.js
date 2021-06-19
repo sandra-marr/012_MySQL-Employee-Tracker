@@ -393,50 +393,52 @@ const addDepartment = () => {
 };
 
 const addRole = () => {
-  populateDepartment_list();
   populateDepartmentArray();
-
-  inquirer
-    .prompt([
-      {
-        name: "newRole",
-        type: "input",
-        message: "Please enter the new role name.",
-      },
-      {
-        name: "newRoleSalary",
-        type: "input",
-        message: "Please enter the new role salary.",
-      },
-      {
-        name: "department",
-        type: "list",
-        message: "Please enter the new role's department.",
-        choices: department_list,
-      },
-    ])
-    .then((answer) => {
-
-      var departmentId; 
-
-      departmentArray.forEach ((item)=>{
-        if(item.departmentName === answer.department) {
-          return departmentId = item.id;
-        }
-      })
-
-      connection.query("INSERT INTO role SET ?",
+  populateDepartment_list();
+  connection.query("SELECT * FROM department", (err, results) => {
+    if (err) throw err;
+    inquirer
+      .prompt([
         {
-          title: answer.newRole,
-          salary: answer.newRoleSalary,
-          department_id: departmentId,
+          name: "newRole",
+          type: "input",
+          message: "Please enter the new role name.",
         },
-        (err) => {
-          if (err) throw err;
-          menu();
+        {
+          name: "newRoleSalary",
+          type: "input",
+          message: "Please enter the new role salary.",
+        },
+        {
+          name: "department",
+          type: "list",
+          message: "Please enter the new role's department.",
+          choices: department_list,
+        },
+      ])
+      .then((answer) => {
 
-        });
-    });
+        var departmentId; 
+
+        departmentArray.forEach ((item)=>{
+          if(item.departmentName === answer.department) {
+            return departmentId = item.id;
+          }
+        })
+
+        connection.query("INSERT INTO role SET ?",
+          {
+            title: answer.newRole,
+            salary: answer.newRoleSalary,
+            department_id: departmentId,
+          },
+          (err) => {
+            if (err) throw err;
+            menu();
+
+          });
+      });
+})
 };
 
 const addEmployee = () => {
