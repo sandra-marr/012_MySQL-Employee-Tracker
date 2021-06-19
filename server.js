@@ -34,10 +34,16 @@ const menu = () => {
         choices: 
           [
             "View all employees", 
+            "View all roles",
+            "View all departments",
             "View all employees by Manager", 
             "View all employees by Department", 
             "Add employee", 
+            "Add department", 
+            "Add role", 
             "Remove employee", 
+            "Remove role",
+            "Remove department",
             "Update employee role", 
             "Update employee manager",
             "Exit"
@@ -49,6 +55,12 @@ const menu = () => {
         case "View all employees":
           viewAllEmployees()
           break;
+        case "View all roles":
+          viewAllRoles()
+          break;
+        case "View all departments":
+          viewAllDepartments()
+          break;
         case "View all employees by Manager":
           viewByManager()
           break;
@@ -58,8 +70,20 @@ const menu = () => {
         case "Add employee":
           addEmployee()
           break;
+        case "Add department":
+          addDepartment()
+          break;
+        case "Add role":
+          addRole()
+          break;
         case "Remove employee":
           removeEmployee()
+          break;
+        case "Remove role":
+          removeRole()
+          break;
+        case "Remove department":
+          removeDepartment()
           break;
         case "Update employee role":
           updateRole()
@@ -74,19 +98,21 @@ const menu = () => {
 }
 
 //variables and associated functions to compare inquirer response to table data
-const managerArray = [];
-const manager_list = [];
-const departmentArray = [];
-const department_list = [];
-const roleArray = [];
-const role_list = [];
-const employeeArray = [];
-const employee_list = [];
+let managerArray = [];
+let manager_list = [];
+let departmentArray = [];
+let department_list = [];
+let roleArray = [];
+let role_list = [];
+let employeeArray = [];
+let employee_list = [];
 
     
 var populateManagerArray = () => {
   connection.query("SELECT * FROM employee WHERE role_id = 6", (err, results) => {
     if (err) throw err;
+
+    managerArray = [];
 
     results.forEach(({ id, first_name, last_name }) => {
       managerArray.push({id: id, managerName: first_name + " " + last_name});
@@ -98,6 +124,8 @@ var populateManagerArray = () => {
 var populateManager_list = () => {
   connection.query("SELECT * FROM employee WHERE role_id = 6", (err, results) => {
     if (err) throw err;
+
+    manager_list = [];
     
     results.forEach(({ first_name, last_name }) => {
       manager_list.push(first_name + " " + last_name);
@@ -172,7 +200,7 @@ var populateEmployee_list = () => {
   })
 };
 
-//Code for inquirer and mysql interaction
+//Code for inquirer and mysql interaction - basic viewing
 const viewAllEmployees = () => {
 
   console.log("This is where you will view all employees");
@@ -196,6 +224,31 @@ const viewAllEmployees = () => {
     });
 };
 
+const viewAllRoles = () => {
+
+  connection.query(
+    `SELECT * FROM role`,
+    
+    function (err, res) {
+      if (err) throw err;
+      console.table(res);
+      menu();
+    });
+};
+
+const viewAllDepartments = () => {
+
+  connection.query(
+    `SELECT * FROM department`,
+    
+    function (err, res) {
+      if (err) throw err;
+      console.table(res);
+      menu();
+    });
+};
+
+//Code for inquirer and mysql interaction - sorted viewing
 const viewByManager = () => {
 
   populateManagerArray();
@@ -214,15 +267,19 @@ const viewByManager = () => {
         },
       ])
       .then ((answer) => {
-        console.log(answer);
+        // console.log(answer);
+        // console.log(managerArray);
 
-        var managerId; 
+        
+        let managerId; 
 
         managerArray.forEach ((item)=>{
           if(item.managerName === answer.managerList) {
             return managerId = item.id;
           }
         })
+
+        // console.log(managerId);
 
         connection.query(
           `SELECT 
@@ -238,7 +295,13 @@ const viewByManager = () => {
         
           function (err, res) {
             if (err) throw err;
+            console.log(res);
+            if (res.length === 0) {
+              console.log("That manager does not have any direct reports.")
+            }
+            else{
             console.table(res);
+            }
             menu();
           });
       })
@@ -264,7 +327,7 @@ const viewByDepartment = () => {
       ])
       .then ((answer) => {
         
-        var departmentId;
+        let departmentId;
 
         departmentArray.forEach ((item)=>{
           if(item.departmentName === answer.departmentList) {
@@ -292,20 +355,75 @@ const viewByDepartment = () => {
       })
 })}
 
+//Code for inquirer and mysql interaction - adding
 const addDepartment = () => {
+  inquirer
+      .prompt([
+        {
+          name: "newDepartment",
+          type: "input",
+          message: "Please enter the new department name.",
+        },
+      ])
+      .then((answer) => {
 
-  console.log("This is where you will update an employee's role");
+      connection.query("INSERT INTO department SET ?",
+        {
+          name: answer.newDepartment,
+        },
+        (err) => {
+          if (err) throw err;
+          menu();
 
-  menu();
-
+        });
+    });
 };
 
 const addRole = () => {
+  populateDepartment_list();
+  populateDepartmentArray();
 
-  console.log("This is where you will update an employee's role");
+  inquirer
+    .prompt([
+      {
+        name: "newRole",
+        type: "input",
+        message: "Please enter the new role name.",
+      },
+      {
+        name: "newRoleSalary",
+        type: "input",
+        message: "Please enter the new role salary.",
+      },
+      {
+        name: "department",
+        type: "list",
+        message: "Please enter the new role's department.",
+        choices: department_list,
+      },
+    ])
+    .then((answer) => {
 
-  menu();
+      var departmentId; 
 
+      departmentArray.forEach ((item)=>{
+        if(item.departmentName === answer.department) {
+          return departmentId = item.id;
+        }
+      })
+
+      connection.query("INSERT INTO role SET ?",
+        {
+          title: answer.newRole,
+          salary: answer.newRoleSalary,
+          department_id: departmentId,
+        },
+        (err) => {
+          if (err) throw err;
+          menu();
+
+        });
+    });
 };
 
 const addEmployee = () => {
@@ -350,7 +468,7 @@ const addEmployee = () => {
       ])
       .then((answer) => {
 
-        var roleId;
+        let roleId;
 
         roleArray.forEach ((item)=>{
           if(item.title === answer.role) {
@@ -401,7 +519,7 @@ const removeEmployee = () => {
     ])
     .then ((answer) => {
       
-      var employeeID;
+      let employeeID;
 
       employeeArray.forEach ((item)=>{
         if(item.employeeName === answer.employeeList) {
@@ -422,12 +540,79 @@ const removeEmployee = () => {
   })
 };
 
+
+ //need to make sure that this doesn't delete an employee. When a role is removed, the user should be prompted to re-assign employees in that role, or delete them before the role is deleted. 
 const removeRole = () => {
 
+  populateRoleArray();
+  populateRole_list();
+  
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "roleList",
+          message: "Please select a role to remove.",
+          choices: role_list,
+        }
+    ])
+    .then ((answer) => {
+      
+      let roleID;
+
+      roleArray.forEach ((item)=>{
+        if(item.title === answer.roleList) {
+          return roleID = item.id;
+        }
+      })
+
+      connection.query("DELETE FROM role WHERE ?",
+        {
+          id: roleID,
+        },
+        (err) => {
+          if (err) throw err;
+          menu();
+
+        });
+    })
 };
 
-const removeDepartment = () => {
 
+//need to make sure that this doesn't delete an employee. When a department is removed, the user should be prompted to re-assign employees in that department, or delete them before the department is deleted. 
+const removeDepartment = () => {
+  populateDepartmentArray();
+  populateDepartment_list();
+  
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "departmentList",
+          message: "Please select a department to remove.",
+          choices: department_list,
+        }
+    ])
+    .then ((answer) => {
+      
+      let departmentID;
+
+      roleArray.forEach ((item)=>{
+        if(item.name === answer.departmentList) {
+          return departmentID = item.id;
+        }
+      })
+
+      connection.query("DELETE FROM department WHERE ?",
+        {
+          id: departmentID,
+        },
+        (err) => {
+          if (err) throw err;
+          menu();
+
+        });
+    })
 };
 
 const updateRole = () => {

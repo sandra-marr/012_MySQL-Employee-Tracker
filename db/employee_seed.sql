@@ -13,7 +13,7 @@ CREATE TABLE employee (
   id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
   first_name VARCHAR(30) NOT NULL,
   last_name VARCHAR(30) NOT NULL,
-  role_id INT NOT NULL,
+  role_id INT,
   manager_id INT
 );
 
@@ -21,7 +21,7 @@ CREATE TABLE `role` (
     id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     title VARCHAR(30) NOT NULL,
     salary DECIMAL NOT NULL,
-    department_id INT NOT NULL
+    department_id INT
 ); 
 
 
@@ -39,13 +39,13 @@ VALUES
 
 INSERT INTO employee (first_name, last_name, role_id, manager_id)
 VALUES 
-("Sally", "Park", 1, 1), 
-("Mitch", "Fuller", 2, 1), 
-("Kim", "Lynch", 4, 2), 
-("Mitch", "Fuller", 2, 2),
-("John","Smith", 6, ), 
-("Jane","Doe", 6), 
-("Alex", "Cooper", 6);
+("Sally", "Park", 1, 6), 
+("Mitch", "Fuller", 2, 6), 
+("Kim", "Lynch", 4, 7), 
+("Mitch", "Fuller", 2, 7),
+("John","Smith", 6, Null), 
+("Jane","Doe", 6, Null), 
+("Alex", "Cooper", 6, Null);
 
 
 --  View all employees: the first join should return a table with id first name, last name, title, department, salary, manager name
