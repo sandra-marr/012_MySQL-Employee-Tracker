@@ -39,13 +39,14 @@ const menu = () => {
             "View all employees by Manager", 
             "View all employees by Department", 
             "Add employee", 
-            "Add department", 
             "Add role", 
+            "Add department",
             "Remove employee", 
             "Remove role",
             "Remove department",
             "Update employee role", 
             "Update employee manager",
+            "View department budget",
             "Exit"
           ]
       }
@@ -70,11 +71,11 @@ const menu = () => {
         case "Add employee":
           addEmployee()
           break;
-        case "Add department":
-          addDepartment()
-          break;
         case "Add role":
           addRole()
+          break;
+        case "Add department":
+          addDepartment()
           break;
         case "Remove employee":
           removeEmployee()
@@ -90,6 +91,9 @@ const menu = () => {
           break;
         case "Update employee manager":
           updateManager()
+          break;
+        case "View department budget":
+          viewDepartmentBudget()
           break;
         case "Exit":
           connection.end();
@@ -222,8 +226,8 @@ const viewAllEmployees = () => {
     employee.last_name, 
     CONCAT (manager.first_name, " ", manager.last_name) AS manager, role.title AS title, role.salary AS salary, department.name AS department
         FROM employee
-        JOIN role on employee.role_id = role.id 
-        JOIN department on role.department_id = department.id
+        LEFT JOIN role on employee.role_id = role.id 
+        LEFT JOIN department on role.department_id = department.id
         LEFT JOIN employee AS manager ON employee.manager_id = manager.id`,
     
     function (err, res) {
@@ -276,9 +280,6 @@ const viewByManager = () => {
         },
       ])
       .then ((answer) => {
-        // console.log(answer);
-        // console.log(managerArray);
-
         
         let managerId; 
 
@@ -288,8 +289,6 @@ const viewByManager = () => {
           }
         })
 
-        // console.log(managerId);
-
         connection.query(
           `SELECT 
           employee.id, 
@@ -297,8 +296,8 @@ const viewByManager = () => {
           employee.last_name, 
           CONCAT (manager.first_name, " ", manager.last_name) AS manager, role.title AS title, role.salary AS salary, department.name AS department
           FROM employee
-          JOIN role on employee.role_id = role.id 
-          JOIN department on role.department_id = department.id
+          LEFT JOIN role on employee.role_id = role.id 
+          LEFT JOIN department on role.department_id = department.id
           JOIN employee AS manager ON employee.manager_id = manager.id
           WHERE employee.manager_id = ${managerId}`,
         
@@ -350,7 +349,7 @@ const viewByDepartment = () => {
           employee.last_name, 
           CONCAT (manager.first_name, " ", manager.last_name) AS manager, role.title AS title, role.salary AS salary, department.name AS department
           FROM employee
-          JOIN role on employee.role_id = role.id 
+          LEFT JOIN role on employee.role_id = role.id 
           JOIN department on role.department_id = department.id
           LEFT JOIN employee AS manager ON employee.manager_id = manager.id
           WHERE role.department_id = ${departmentId}`,
@@ -515,6 +514,7 @@ const addEmployee = () => {
   })
 };
 
+//Code for inquirer and mysql interaction - removing
 const removeEmployee = () => {
 
   populateEmployeeArray();
@@ -555,8 +555,6 @@ const removeEmployee = () => {
   })
 };
 
-
- //need to make sure that this doesn't delete an employee. When a role is removed, the user should be prompted to re-assign employees in that role, or delete them before the role is deleted. 
 const removeRole = () => {
 
   populateRoleArray();
@@ -579,22 +577,25 @@ const removeRole = () => {
         if(item.title === answer.roleList) {
           return roleID = item.id;
         }
-      })
-
+      });
+    
       connection.query("DELETE FROM role WHERE ?",
         {
           id: roleID,
         },
         (err) => {
           if (err) throw err;
-          menu();
+        });
 
+      connection.query(
+        `UPDATE employee SET role_id = NULL WHERE role_id = ${roleID}`,
+        (err) => {
+          if (err) throw err;
+          menu();
         });
     })
 };
 
-
-//need to make sure that this doesn't delete an employee. When a department is removed, the user should be prompted to re-assign employees in that department, or delete them before the department is deleted. 
 const removeDepartment = () => {
   populateDepartmentArray();
   populateDepartment_list();
@@ -627,25 +628,169 @@ const removeDepartment = () => {
           menu();
 
         });
+
+      connection.query(
+        `UPDATE role SET department_id = NULL WHERE department_id = ${departmentID}`,
+        (err) => {
+          if (err) throw err;
+          menu();
+        });
     })
 };
 
+//Code for inquirer and mysql interaction - updating
 const updateRole = () => {
 
-  console.log("This is where you will update an employee's role");
+  populateEmployeeArray();
+  populateEmployee_list();
+  populateRoleArray();
+  populateRole_list();
 
-  menu();
+  connection.query("SELECT * FROM employee", (err, results) => {
+    if (err) throw err;
+  inquirer
+    .prompt([
+        {
+          type: "list",
+          name: "employee",
+          message: "Please select an employee to update.",
+          choices: employee_list,
+        }, 
+        {
+          type: "list",
+          name: "updatedRole",
+          message: "Please select a role to assign.",
+          choices: role_list,
+        },
+    ])
+    .then ((answer) => {
+      
+      let employeeId;
+
+      employeeArray.forEach ((item)=>{
+        if(item.employeeName === answer.employee) {
+          return employeeId = item.id;
+        }
+      });
+
+      let roleId;
+
+      roleArray.forEach ((item)=>{
+        if(item.title === answer.updatedRole) {
+          return roleId = item.id;
+        }
+      });
+
+      connection.query(
+        `UPDATE employee SET role_id = ${roleId} WHERE id = ${employeeId}`,
+        (err) => {
+          if (err) throw err;
+          menu();
+        });
+    })
+
+  })
 
 };
 
 const updateManager = () => {
 
-  console.log("This is where you will update an employee's manager");
+  populateEmployeeArray();
+  populateEmployee_list();
+  populateManagerArray();
+  populateManager_list();
 
-  menu();
+  connection.query("SELECT * FROM employee", (err, results) => {
+    if (err) throw err;
+  inquirer
+    .prompt([
+        {
+          type: "list",
+          name: "employee",
+          message: "Please select an employee to update.",
+          choices: employee_list,
+        }, 
+        {
+          type: "list",
+          name: "updatedManager",
+          message: "Please select a manager to assign.",
+          choices: manager_list,
+        },
+    ])
+    .then ((answer) => {
+      console.log(answer);
+      
+      let employeeId;
+
+      employeeArray.forEach ((item)=>{
+        if(item.employeeName === answer.employee) {
+          return employeeId = item.id;
+        }
+      });
+
+      let managerId;
+
+      managerArray.forEach ((item)=>{
+        if(item.managerName === answer.updatedManager) {
+          return managerId = item.id;
+        }
+      });
+
+      connection.query(
+        `UPDATE employee SET manager_id = ${managerId} WHERE id = ${employeeId}`,
+        (err) => {
+          if (err) throw err;
+          menu();
+        });
+    })
+
+  })
+
 
 };
 
-const viewDepartmentBudget = () => {};
+//Code for inquirer and mysql interaction - calculations
+const viewDepartmentBudget = () => {
+  populateDepartmentArray();
+  populateDepartment_list();
 
-// View departments, roles,
+  connection.query("SELECT * FROM department", (err, results) => {
+    if (err) throw err;
+  
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "departmentList",
+          message: "Please select a department to review.",
+          choices: department_list,
+        }
+    ])
+    .then ((answer) => {
+    
+      let departmentId;
+
+      departmentArray.forEach ((item)=>{
+        if(item.departmentName === answer.departmentList) {
+          return departmentId = item.id;
+        }
+      })
+  
+      connection.query(
+        `SELECT 
+          SUM(role.salary) Budget
+          FROM employee
+          JOIN role on employee.role_id = role.id 
+          JOIN department on role.department_id = department.id
+          WHERE role.department_id = ${departmentId}`,
+      
+          function (err, res) {
+            if (err) throw err;
+           
+            console.table(res);
+    
+            menu();
+        });
+    })
+  });
+};
